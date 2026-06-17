@@ -15,7 +15,7 @@ tool consumes by pipe. The `k8s-` prefix marks that it reads from the cluster
 
 ## Requirements
 
-- Python 3.11+ (`tomllib`, `datetime.fromisoformat` with `Z`)
+- Python 3.11+ (`datetime.fromisoformat` with `Z`)
 - `kubectl`, `logcli` on `PATH`
 - A reachable Loki, with the search endpoint deployed on the cluster
 
@@ -49,7 +49,7 @@ can feed a measurement directly.
 ./k8s-loki-logbench.py verify --namespace-prefix logger-ns
 
 # or measure exactly what a producer just created:
-k8s-logload.py tekton-run | ./k8s-loki-logbench.py latency --mode tail --stdin
+k8s-logload.py task-run | ./k8s-loki-logbench.py latency --mode tail --stdin
 ```
 
 ## Notes on the measurement
@@ -57,9 +57,11 @@ k8s-logload.py tekton-run | ./k8s-loki-logbench.py latency --mode tail --stdin
 - Latency is `now - pod .status.startTime` at the moment the first line is
   observed. It is a **seconds-grained** figure for a benchmark; subprocess
   startup jitter sits below that floor and is not corrected for.
-- `verify` uses `count_over_time(...[1h])` via `logcli instant-query`. Loki's
-  metric-query output format is the one place this glue depends on a specific
-  `logcli` version; if a count looks wrong, check that line first.
+- `verify` counts via `count_over_time` scoped to each pod's lifetime
+  (`[startTime, now]`) through `logcli instant-query` — so a re-run that reuses a
+  pod name is not double-counted. Loki's metric-query output format is the one
+  place this glue depends on a specific `logcli` version; if a count looks wrong,
+  check that line first.
 
 ## License
 

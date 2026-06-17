@@ -1,9 +1,0 @@
-# Connection details are NOT here:
-#   - Loki endpoint / auth  -> owned by logcli  (LOKI_ADDR, etc.)
-#   - kubeconfig / context  -> owned by kubectl (KUBECONFIG, current-context)
-# Tenant id is the namespace (logcli --org-id <namespace>).
-#
-# Load shaping lives in the producer (k8s-logload), not here.
-
-# Default namespace prefix for pod discovery (overridden by --namespace-prefix).
-namespace_prefix = "logger-ns"

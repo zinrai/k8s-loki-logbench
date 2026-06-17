@@ -13,7 +13,6 @@ import select
 import subprocess
 import sys
 import time
-import tomllib
 from datetime import datetime, timezone
 
 # --- shell ----------------------------------------------------------------
@@ -122,12 +121,11 @@ def _pods_by_prefix(prefix):
     return out
 
 
-def collect_pods(args, cfg):
+def collect_pods(args):
     """Target pods come from stdin (pipeline) or from a namespace-prefix scan."""
-    if getattr(args, "stdin", False):
+    if args.stdin:
         return _read_stdin_pods()
-    prefix = getattr(args, "namespace_prefix", None) or cfg["namespace_prefix"]
-    return _pods_by_prefix(prefix)
+    return _pods_by_prefix(args.namespace_prefix)
 
 
 # --- latency --------------------------------------------------------------
@@ -211,8 +209,8 @@ def _summary(latencies):
     }
 
 
-def cmd_latency(args, cfg):
-    targets = collect_pods(args, cfg)
+def cmd_latency(args):
+    targets = collect_pods(args)
     latencies = []
     for pod in targets:
         if args.mode == "tail":
@@ -268,8 +266,8 @@ def _loki_count(pod):
     return total
 
 
-def cmd_verify(args, cfg):
-    targets = collect_pods(args, cfg)
+def cmd_verify(args):
+    targets = collect_pods(args)
     mismatches = 0
     for pod in targets:
         expected = _annotation_lines(pod)
@@ -290,25 +288,6 @@ def cmd_verify(args, cfg):
     return 1 if mismatches else 0
 
 
-# --- config ---------------------------------------------------------------
-# Connection details live in logcli/kubectl env, not here; load shaping lives
-# in the producer (k8s-logload). Only the default pod-scan prefix remains.
-
-_CONFIG_DEFAULTS = {
-    "namespace_prefix": "logger-ns",
-}
-
-
-def load_config(path):
-    cfg = dict(_CONFIG_DEFAULTS)
-    try:
-        with open(path, "rb") as f:
-            cfg.update(tomllib.load(f))
-    except FileNotFoundError:
-        pass
-    return cfg
-
-
 # --- cli ------------------------------------------------------------------
 
 
@@ -321,13 +300,13 @@ def _add_target(p):
     )
     p.add_argument(
         "--namespace-prefix",
-        help="scan pods whose namespace starts with this (default: config)",
+        default="logger-ns",
+        help="scan pods whose namespace starts with this",
     )
 
 
 def build_parser():
     p = argparse.ArgumentParser(prog="k8s-loki-logbench.py")
-    p.add_argument("-c", "--config", default="config.toml")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     lat = sub.add_parser("latency", help="measure pod-start -> queryable latency")
@@ -346,8 +325,7 @@ def build_parser():
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    cfg = load_config(args.config)
-    return args.func(args, cfg)
+    return args.func(args)
 
 
 if __name__ == "__main__":
