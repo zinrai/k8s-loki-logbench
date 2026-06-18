@@ -4,7 +4,7 @@ Measure the Grafana Loki log pipeline for Kubernetes pods: report how long
 their log lines take to become queryable and whether any are missing.
 
 A single self-contained Python script (`k8s-loki-logbench.py`, stdlib only). It
-owns no Kubernetes or Loki client library — it shells out to `kubectl`
+owns no Kubernetes or Loki client library; it shells out to `kubectl`
 (read-only) and `logcli` and moves JSON between them. No `go.mod`, no PyPI
 dependency.
 
@@ -28,12 +28,12 @@ Connection details are **not** configured here:
 ## Subcommands
 
 Each subcommand prints JSON; they compose with pipes. Run
-`./k8s-loki-logbench.py <cmd> --help` for flags — that output is the source of
+`./k8s-loki-logbench.py <cmd> --help` for flags; that output is the source of
 truth, not this file.
 
 | command | what it does |
 | --- | --- |
-| `latency --mode range` | poll `logcli query` until a line lands; report start→queryable latency |
+| `latency --mode range` | poll `logcli query` until a line lands; report the latency from pod start to queryable |
 | `latency --mode tail` | measure the first line streamed over `logcli query --tail` |
 | `verify` | compare each pod's `total_log_lines` annotation against Loki's count |
 
@@ -58,7 +58,7 @@ k8s-logload.py task-run | ./k8s-loki-logbench.py latency --mode tail --stdin
   observed. It is a **seconds-grained** figure for a benchmark; subprocess
   startup jitter sits below that floor and is not corrected for.
 - `verify` counts via `count_over_time` scoped to each pod's lifetime
-  (`[startTime, now]`) through `logcli instant-query` — so a re-run that reuses a
+  (`[startTime, now]`) through `logcli instant-query`, so a re-run that reuses a
   pod name is not double-counted. Loki's metric-query output format is the one
   place this glue depends on a specific `logcli` version; if a count looks wrong,
   check that line first.
